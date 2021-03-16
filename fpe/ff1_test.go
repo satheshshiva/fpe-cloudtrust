@@ -2861,7 +2861,7 @@ func TestCustomEncryptionDecryption(t *testing.T) {
 	var dst = make([]byte, len(src))
 	encrypter.CryptBlocks(dst, src)
 	var ciphertext = BytesToNumeralString(dst)
-	fmt.Print(ciphertext)
+	fmt.Println(ciphertext)
 
 	// Decrypt ciphertext
 	src = NumeralStringToBytes(ciphertext)
