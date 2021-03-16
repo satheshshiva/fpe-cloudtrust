@@ -9,6 +9,7 @@ package fpe
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"math/rand"
@@ -2828,8 +2829,48 @@ func TestFF1EncryptionDecryption(t *testing.T) {
 
 		assert.Equal(t, plaintext, decrypted)
 	}
-}
+} // This test was Created by Sathesh
+func TestCustomEncryptionDecryption(t *testing.T) {
 
+	key := []byte("1234567890123456")
+	tweak := []byte("tweak")
+	radix := uint32(71)
+
+	var encrypter cipher.BlockMode
+	{
+		var err error
+		encrypter, err = getFF1Encrypter(key, tweak, radix)
+		assert.Nil(t, err)
+	}
+	var decrypter cipher.BlockMode
+	{
+		var err error
+		decrypter, err = getFF1Decrypter(key, tweak, radix)
+		assert.Nil(t, err)
+	}
+
+	size := 71
+	var out = make([]uint16, size)
+	for i := 0; i < size; i++ {
+		out[i] = uint16(i)
+	}
+
+	// Encrypt random numeral string with random key
+	var plaintext = out
+	var src = NumeralStringToBytes(plaintext)
+	var dst = make([]byte, len(src))
+	encrypter.CryptBlocks(dst, src)
+	var ciphertext = BytesToNumeralString(dst)
+	fmt.Print(ciphertext)
+
+	// Decrypt ciphertext
+	src = NumeralStringToBytes(ciphertext)
+	decrypter.CryptBlocks(dst, src)
+	var decrypted = BytesToNumeralString(dst)
+
+	assert.Equal(t, plaintext, decrypted)
+
+}
 func TestFF1CornerCases(t *testing.T) {
 	var key, tweak, _ []byte = getRandomParameters(ff1DefaultKeySize, ff1DefaultTweakSize, blockSizeFF1)
 
