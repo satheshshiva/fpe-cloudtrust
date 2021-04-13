@@ -12,8 +12,10 @@ import (
 const blockSizeFF1 = 16
 
 //export Encrypt
-func Encrypt(pt string, key string, tweak string) {
-	fmt.Println("GO: Plain Text ", pt)
+func Encrypt(_pt *C.char, _key *C.char, _tweak *C.char) *C.char {
+	pt := C.GoString(_pt)
+	key := C.GoString(_key)
+	tweak := C.GoString(_tweak)
 	generic := format.NewGenericPIIFormat()
 	radix := len(generic.CharToInt)
 	var toBeEncCnt int
@@ -43,20 +45,17 @@ func Encrypt(pt string, key string, tweak string) {
 	ke := []byte(key)
 	twk := []byte(tweak)
 	r := uint32(radix)
-
 	encrypter, err := getFF1Encrypter(ke, twk, r)
 	if err != nil {
 		panic("couldn't create FF1 encrypter " + err.Error())
 	}
 
-	//TODO is the numeral string coversion needed
+	//TODO is the numeral string conversion needed
 	var src = fpe.NumeralStringToBytes(toBeEnc)
 	var dst = make([]byte, len(src))
 	//Encryption
 	encrypter.CryptBlocks(dst, src)
 	var tempCt = fpe.BytesToNumeralString(dst)
-	fmt.Println("tempCt", tempCt)
-
 	var ct string
 	//transform int to char
 	for i, val := range tempCt {
@@ -66,12 +65,12 @@ func Encrypt(pt string, key string, tweak string) {
 		}
 		ct += generic.IntToChar[val]
 	}
-	fmt.Println("ct", ct)
-	//return C.CString(ct)
+	return C.CString(ct)
 }
 
 func main() {
-	Encrypt("abcxjasdy1zad", "y9zHShe/o7I5jFa41JMEFA==", "asdd")
+	ct := Encrypt(C.CString("abcxjasdy1zad"), C.CString("y9zHShe/o7I5jFa41JMEFA=="), C.CString("asdd"))
+	fmt.Println(C.GoString(ct))
 	//TestEncryptDecrypt()
 }
 
