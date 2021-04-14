@@ -65,23 +65,71 @@ func Encrypt(_pt *C.char, _key *C.char, _tweak *C.char) *C.char {
 	return C.CString(ct)
 }
 
-/*//export Decrypt
+//export Decrypt
 func Decrypt(_ct *C.char, _key *C.char, _tweak *C.char) *C.char {
 	ct := C.GoString(_ct)
 	key := C.GoString(_key)
 	tweak := C.GoString(_tweak)
 	generic := format.NewGenericPIIFormat()
 
-	for i, val := range ct {
+	radix := len(generic.CharToInt)
+	var toBeEncCnt int
+	cs := generic.CharToInt
+	toBeEnc := make([]uint16, len(ct))
+	outliers := make(map[int]string)
 
+	for i, val := range ct {
+		v := string(val)
+		if j, ok := cs[v]; ok {
+			toBeEnc[toBeEncCnt] = j
+			toBeEncCnt++
+		} else if generic.SkipOutliers {
+			outliers[i] = v
+		} else {
+			panic(fmt.Sprintf("Value %s not in characterset", v))
+		}
 	}
 
+	//trim the to Enc. the outliers would have left blanks
+	toBeEnc = toBeEnc[0:toBeEncCnt]
 
-}*/
+	//the actual encryption params
+	ke := []byte(key)
+	twk := []byte(tweak)
+	r := uint32(radix)
+	decrypter, err := getFF1Decrypter(ke, twk, r)
+	if err != nil {
+		panic("couldn't create FF1 decrypter " + err.Error())
+	}
+
+	//TODO is the numeral string conversion needed
+	var src = fpe.NumeralStringToBytes(toBeEnc)
+	var dst = make([]byte, len(src))
+	//Encryption
+	decrypter.CryptBlocks(dst, src)
+	var tempPt = fpe.BytesToNumeralString(dst)
+	var pt string
+	// forming the cipher text from encrypted numerals
+	//the encrypted will have numeral string. replace the integers with actual characters from character set
+	for i, val := range tempPt {
+		//For this current position check whether outlying character exists
+		if _, ok := outliers[i]; ok {
+			pt += outliers[i]
+		}
+		pt += generic.IntToChar[val]
+	}
+	return C.CString(pt)
+
+}
 
 func main() {
-	ct := Encrypt(C.CString("abcxjasdy1zad"), C.CString("y9zHShe/o7I5jFa41JMEFA=="), C.CString("asdd"))
+	pt := "abcdefghijkl"
+	fmt.Println(pt)
+	ct := Encrypt(C.CString(pt), C.CString("y9zHShe/o7I5jFa41JMEFA=="), C.CString("39383736353433323130"))
 	fmt.Println(C.GoString(ct))
+
+	decrypted := Decrypt(ct, C.CString("y9zHShe/o7I5jFa41JMEFA=="), C.CString("39383736353433323130"))
+	fmt.Println(C.GoString(decrypted))
 	//TestEncryptDecrypt()
 }
 
