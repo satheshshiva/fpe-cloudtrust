@@ -8,7 +8,7 @@ type format struct {
 }
 
 func NewGenericPIIFormat() *format {
-	chars := " ~`@#$%^&*()!_-\":;'><,.?/[{]}+=\\|0123456789acdefghijklmnopqzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	chars := " ~`@#$%^&*()!_-\":;'><,.?/[{]}+=\\|0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	m := make(map[string]uint16)
 	n := make(map[uint16]string)
 	for i, val := range chars {

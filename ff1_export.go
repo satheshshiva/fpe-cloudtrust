@@ -37,10 +37,6 @@ func Encrypt(_pt *C.char, _key *C.char, _tweak *C.char) *C.char {
 	}
 	//trim the to Enc. the outliers would have left blanks
 	toBeEnc = toBeEnc[0:toBeEncCnt]
-	fmt.Println("pt", pt)
-	fmt.Println("toBeEnc", toBeEnc)
-	fmt.Println("outliers", outliers)
-
 	//the actual encryption params
 	ke := []byte(key)
 	twk := []byte(tweak)
@@ -57,7 +53,8 @@ func Encrypt(_pt *C.char, _key *C.char, _tweak *C.char) *C.char {
 	encrypter.CryptBlocks(dst, src)
 	var tempCt = fpe.BytesToNumeralString(dst)
 	var ct string
-	//transform int to char
+	// forming the cipher text from encrypted numerals
+	//the encrypted will have numeral string. replace the integers with actual characters from character set
 	for i, val := range tempCt {
 		//For this current position check whether outlying character exists
 		if _, ok := outliers[i]; ok {
@@ -67,6 +64,20 @@ func Encrypt(_pt *C.char, _key *C.char, _tweak *C.char) *C.char {
 	}
 	return C.CString(ct)
 }
+
+/*//export Decrypt
+func Decrypt(_ct *C.char, _key *C.char, _tweak *C.char) *C.char {
+	ct := C.GoString(_ct)
+	key := C.GoString(_key)
+	tweak := C.GoString(_tweak)
+	generic := format.NewGenericPIIFormat()
+
+	for i, val := range ct {
+
+	}
+
+
+}*/
 
 func main() {
 	ct := Encrypt(C.CString("abcxjasdy1zad"), C.CString("y9zHShe/o7I5jFa41JMEFA=="), C.CString("asdd"))
