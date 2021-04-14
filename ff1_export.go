@@ -133,50 +133,6 @@ func main() {
 	//TestEncryptDecrypt()
 }
 
-//export TestEncryptDecrypt
-func TestEncryptDecrypt() *C.char {
-	name := C.CString("Gopher")
-	fmt.Println(C.GoString(name))
-	key := []byte("1234567890123456")
-	tweak := []byte("tweak")
-	radix := uint32(71)
-
-	encrypter, err := getFF1Encrypter(key, tweak, radix)
-	if err != nil {
-		panic(err)
-	}
-	decrypter, err := getFF1Decrypter(key, tweak, radix)
-	if err != nil {
-		panic(err)
-	}
-
-	size := 71
-	var out = make([]int, size)
-	for i := 0; i < size; i++ {
-		out[i] = i
-	}
-
-	var plaintext = make([]uint16, size)
-	for i := 0; i < len(out); i++ {
-		plaintext[i] = uint16(i)
-	}
-
-	// Encrypt random numeral string with random key
-	var src = fpe.NumeralStringToBytes(plaintext)
-	var dst = make([]byte, len(src))
-	encrypter.CryptBlocks(dst, src)
-	var ciphertext = fpe.BytesToNumeralString(dst)
-	fmt.Println(ciphertext)
-
-	// Decrypt ciphertext
-	src = fpe.NumeralStringToBytes(ciphertext)
-	decrypter.CryptBlocks(dst, src)
-	var decrypted = fpe.BytesToNumeralString(dst)
-	fmt.Println("plain", plaintext)
-	fmt.Println("decrypted", decrypted)
-	return C.CString("Done")
-}
-
 func getFF1Encrypter(key, tweak []byte, radix uint32) (cipher.BlockMode, error) {
 	// Create AES Block used by FF1.
 	var aesBlock, err = aes.NewCipher(key)
