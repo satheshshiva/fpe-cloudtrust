@@ -32,16 +32,16 @@ func Decrypt(_ct *C.char, _key *C.char, _tweak *C.char) *C.char {
 	ke := []byte(C.GoString(_key))
 	twk := []byte(C.GoString(_tweak))
 	r := uint32(len(generic.CharToInt))
-	encrypter, err := getFF1Decrypter(ke, twk, r)
+	decrypter, err := getFF1Decrypter(ke, twk, r)
 	if err != nil {
-		panic("couldn't create FF1 encrypter " + err.Error())
+		panic("couldn't create FF1 decrypter " + err.Error())
 	}
-	cipherText := format.Transform(pt, encrypter, generic)
+	cipherText := format.Transform(pt, decrypter, generic)
 	return C.CString(cipherText)
 }
 
 func main() {
-
+	//empty main is needed for cgo to work
 }
 
 //doing this for tests. In Go, the tests does not support CGO yet!
