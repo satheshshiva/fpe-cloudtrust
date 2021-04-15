@@ -10,33 +10,59 @@ import (
 
 const blockSizeFF1 = 16
 
-//export Encrypt
-func Encrypt(_pt *C.char, _key *C.char, _tweak *C.char) *C.char {
+//export EncryptGenericPII
+func EncryptGenericPII(pt *C.char, key *C.char, tweak *C.char) *C.char {
+	return encrypt(pt, key, tweak, format.NewGenericPIIFormat())
+}
+
+//export DecryptGenericPII
+func DecryptGenericPII(pt *C.char, key *C.char, tweak *C.char) *C.char {
+	return decrypt(pt, key, tweak, format.NewGenericPIIFormat())
+}
+
+//export EncryptPANFullFpe
+func EncryptPANFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
+	return encrypt(pt, key, tweak, format.NewPANFullFpe())
+}
+
+//export DecryptPANFullFpe
+func DecryptPANFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
+	return decrypt(pt, key, tweak, format.NewPANFullFpe())
+}
+
+//export EncryptSSNFullFpe
+func EncryptSSNFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
+	return encrypt(pt, key, tweak, format.NewSSNFullFpe())
+}
+
+//export DecryptSSNFullFpe
+func DecryptSSNFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
+	return decrypt(pt, key, tweak, format.NewSSNFullFpe())
+}
+
+func encrypt(_pt *C.char, _key *C.char, _tweak *C.char, fpeformat *format.Fpeformat) *C.char {
 	pt := C.GoString(_pt)
-	generic := format.NewGenericPIIFormat()
 	ke := []byte(C.GoString(_key))
 	twk := []byte(C.GoString(_tweak))
-	r := uint32(len(generic.CharToInt))
+	r := uint32(len(fpeformat.CharToInt))
 	encrypter, err := getFF1Encrypter(ke, twk, r)
 	if err != nil {
 		panic("couldn't create FF1 encrypter " + err.Error())
 	}
-	cipherText := format.Transform(pt, encrypter, generic)
+	cipherText := format.Transform(pt, encrypter, fpeformat)
 	return C.CString(cipherText)
 }
 
-//export Decrypt
-func Decrypt(_ct *C.char, _key *C.char, _tweak *C.char) *C.char {
+func decrypt(_ct *C.char, _key *C.char, _tweak *C.char, fpeformat *format.Fpeformat) *C.char {
 	pt := C.GoString(_ct)
-	generic := format.NewGenericPIIFormat()
 	ke := []byte(C.GoString(_key))
 	twk := []byte(C.GoString(_tweak))
-	r := uint32(len(generic.CharToInt))
+	r := uint32(len(fpeformat.CharToInt))
 	decrypter, err := getFF1Decrypter(ke, twk, r)
 	if err != nil {
 		panic("couldn't create FF1 decrypter " + err.Error())
 	}
-	cipherText := format.Transform(pt, decrypter, generic)
+	cipherText := format.Transform(pt, decrypter, fpeformat)
 	return C.CString(cipherText)
 }
 
@@ -45,12 +71,12 @@ func main() {
 }
 
 //doing this for tests. In Go, the tests does not support CGO yet!
-func encrypt(pt string, key string, tweak string) string {
-	return C.GoString(Encrypt(C.CString(pt), C.CString(key), C.CString(tweak)))
+func encryptForTests(pt string, key string, tweak string) string {
+	return C.GoString(EncryptGenericPII(C.CString(pt), C.CString(key), C.CString(tweak)))
 }
 
-func decrypt(pt string, key string, tweak string) string {
-	return C.GoString(Decrypt(C.CString(pt), C.CString(key), C.CString(tweak)))
+func decryptForTests(pt string, key string, tweak string) string {
+	return C.GoString(DecryptGenericPII(C.CString(pt), C.CString(key), C.CString(tweak)))
 }
 
 func getFF1Encrypter(key, tweak []byte, radix uint32) (cipher.BlockMode, error) {

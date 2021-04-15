@@ -7,13 +7,13 @@ import (
 	"github.com/cloudtrust/fpe/fpe"
 )
 
-// Transform Encrypts or Decypts the given string based on the given fpe format
+// Transform Encrypts or Decypts the given string based on the given fpe fpeformat
 // Three steps involved
 // Step 1: Remove the outlying characters and form the outlying characters map and toBeProcessed array
 // Step 2: Encrypt or Decypt the toBeProcessed array
 // Step 3: Combine both the processed array and outliers map
 
-func Transform(ip string, encdec cipher.BlockMode, fpeformat *format) string {
+func Transform(ip string, encdec cipher.BlockMode, fpeformat *Fpeformat) string {
 	var toBeEncCnt int
 	cs := fpeformat.CharToInt
 	toBeProcessed := make([]uint16, len(ip))
