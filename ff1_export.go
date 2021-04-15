@@ -4,66 +4,81 @@ import "C"
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/base64"
 	"github.com/cloudtrust/fpe/fpe"
 	"github.com/cloudtrust/fpe/fpe/format"
 )
 
 const blockSizeFF1 = 16
 
+type process int
+
+const (
+	encrypt process = iota
+	decrypt
+)
+
 //export EncryptGenericPII
 func EncryptGenericPII(pt *C.char, key *C.char, tweak *C.char) *C.char {
-	return encrypt(pt, key, tweak, format.NewGenericPIIFormat())
+	return doProcess(encrypt, pt, key, tweak, format.NewGenericPIIFormat())
 }
 
 //export DecryptGenericPII
 func DecryptGenericPII(pt *C.char, key *C.char, tweak *C.char) *C.char {
-	return decrypt(pt, key, tweak, format.NewGenericPIIFormat())
+	return doProcess(decrypt, pt, key, tweak, format.NewGenericPIIFormat())
 }
 
 //export EncryptPANFullFpe
 func EncryptPANFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
-	return encrypt(pt, key, tweak, format.NewPANFullFpe())
+	return doProcess(encrypt, pt, key, tweak, format.NewPANFullFpe())
 }
 
 //export DecryptPANFullFpe
 func DecryptPANFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
-	return decrypt(pt, key, tweak, format.NewPANFullFpe())
+	return doProcess(decrypt, pt, key, tweak, format.NewPANFullFpe())
 }
 
 //export EncryptSSNFullFpe
 func EncryptSSNFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
-	return encrypt(pt, key, tweak, format.NewSSNFullFpe())
+	return doProcess(encrypt, pt, key, tweak, format.NewSSNFullFpe())
 }
 
 //export DecryptSSNFullFpe
 func DecryptSSNFullFpe(pt *C.char, key *C.char, tweak *C.char) *C.char {
-	return decrypt(pt, key, tweak, format.NewSSNFullFpe())
+	return doProcess(decrypt, pt, key, tweak, format.NewSSNFullFpe())
 }
 
-func encrypt(_pt *C.char, _key *C.char, _tweak *C.char, fpeformat *format.Fpeformat) *C.char {
-	pt := C.GoString(_pt)
-	ke := []byte(C.GoString(_key))
-	twk := []byte(C.GoString(_tweak))
-	r := uint32(len(fpeformat.CharToInt))
-	encrypter, err := getFF1Encrypter(ke, twk, r)
+func doProcess(proc process, _txt *C.char, _key *C.char, _tweak *C.char, fpeformat *format.Fpeformat) *C.char {
+	txt := C.GoString(_txt)
+	ke, err := base64.StdEncoding.DecodeString(C.GoString(_key))
 	if err != nil {
-		panic("couldn't create FF1 encrypter " + err.Error())
+		panic("key decode error:" + err.Error())
 	}
-	cipherText := format.Transform(pt, encrypter, fpeformat)
-	return C.CString(cipherText)
-}
 
-func decrypt(_ct *C.char, _key *C.char, _tweak *C.char, fpeformat *format.Fpeformat) *C.char {
-	pt := C.GoString(_ct)
-	ke := []byte(C.GoString(_key))
 	twk := []byte(C.GoString(_tweak))
 	r := uint32(len(fpeformat.CharToInt))
-	decrypter, err := getFF1Decrypter(ke, twk, r)
+	var op string
+	var crypto cipher.BlockMode
+
+	//create key cipher
+	aesBlock, err := aes.NewCipher(ke)
 	if err != nil {
-		panic("couldn't create FF1 decrypter " + err.Error())
+		panic("Couldn't create key:" + err.Error())
 	}
-	cipherText := format.Transform(pt, decrypter, fpeformat)
-	return C.CString(cipherText)
+
+	// Create CBC mode used by FF1.
+	var iv = make([]byte, blockSizeFF1)
+	var cbcMode = cipher.NewCBCEncrypter(aesBlock, iv)
+
+	if proc == encrypt {
+		crypto = fpe.NewFF1Encrypter(aesBlock, cbcMode, twk, r)
+	} else {
+		crypto = fpe.NewFF1Decrypter(aesBlock, cbcMode, twk, r)
+	}
+	//actual process happens below. outlying characters +  encryption or decryption.
+	op = format.Transform(txt, crypto, fpeformat)
+
+	return C.CString(op)
 }
 
 func main() {
@@ -77,38 +92,4 @@ func encryptForTests(pt string, key string, tweak string) string {
 
 func decryptForTests(pt string, key string, tweak string) string {
 	return C.GoString(DecryptGenericPII(C.CString(pt), C.CString(key), C.CString(tweak)))
-}
-
-func getFF1Encrypter(key, tweak []byte, radix uint32) (cipher.BlockMode, error) {
-	// Create AES Block used by FF1.
-	var aesBlock, err = aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create CBC mode used by FF1.
-	var iv = make([]byte, blockSizeFF1)
-	var cbcMode = cipher.NewCBCEncrypter(aesBlock, iv)
-
-	// Create FF1 Encrypter
-	var encrypter = fpe.NewFF1Encrypter(aesBlock, cbcMode, tweak, radix)
-
-	return encrypter, nil
-}
-
-func getFF1Decrypter(key, tweak []byte, radix uint32) (cipher.BlockMode, error) {
-	// Create AES Block used by FF1.
-	var aesBlock, err = aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create CBC mode used by FF1.
-	var iv = make([]byte, blockSizeFF1)
-	var cbcMode = cipher.NewCBCEncrypter(aesBlock, iv)
-
-	// Create FF1 Decrypter
-	var decrypter = fpe.NewFF1Decrypter(aesBlock, cbcMode, tweak, radix)
-
-	return decrypter, nil
 }
