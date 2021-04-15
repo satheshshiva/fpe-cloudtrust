@@ -2829,7 +2829,49 @@ func TestFF1EncryptionDecryption(t *testing.T) {
 
 		assert.Equal(t, plaintext, decrypted)
 	}
-} // This test was Created by Sathesh
+}
+
+func TestFF1CornerCases(t *testing.T) {
+	var key, tweak, _ []byte = getRandomParameters(ff1DefaultKeySize, ff1DefaultTweakSize, blockSizeFF1)
+
+	var radix = uint32(maxRadixFF1)
+	// We take inputs length at random between 7 and 400. We set the lower bound to 7 so
+	// we always satisfy the condition radix^len >= 100 (minRadix = 2). We set the
+	// upper bound to 400 for performance reasons.
+	var l = int(rand.Uint32()%394) + 7
+
+	var encrypter cipher.BlockMode
+	{
+		var err error
+		encrypter, err = getFF1Encrypter(key, tweak, radix)
+		assert.Nil(t, err)
+	}
+	var decrypter cipher.BlockMode
+	{
+		var err error
+		decrypter, err = getFF1Decrypter(key, tweak, radix)
+		assert.Nil(t, err)
+	}
+
+	// Encrypt
+	var plaintext = make([]uint16, l)
+	for i := 0; i < l; i++ {
+		plaintext[i] = maxRadixFF1 - 1
+	}
+	var src = NumeralStringToBytes(plaintext)
+	var dst = make([]byte, len(src))
+	encrypter.CryptBlocks(dst, src)
+	var ciphertext = BytesToNumeralString(dst)
+
+	// Decrypt
+	src = NumeralStringToBytes(ciphertext)
+	decrypter.CryptBlocks(dst, src)
+	var decrypted = BytesToNumeralString(dst)
+
+	assert.Equal(t, plaintext, decrypted)
+}
+
+// author: Sathesh
 func TestCustomEncryptionDecryption(t *testing.T) {
 
 	key := []byte("1234567890123456")
@@ -2871,44 +2913,35 @@ func TestCustomEncryptionDecryption(t *testing.T) {
 	assert.Equal(t, plaintext, decrypted)
 
 }
-func TestFF1CornerCases(t *testing.T) {
-	var key, tweak, _ []byte = getRandomParameters(ff1DefaultKeySize, ff1DefaultTweakSize, blockSizeFF1)
 
-	var radix = uint32(maxRadixFF1)
-	// We take inputs length at random between 7 and 400. We set the lower bound to 7 so
-	// we always satisfy the condition radix^len >= 100 (minRadix = 2). We set the
-	// upper bound to 400 for performance reasons.
-	var l = int(rand.Uint32()%394) + 7
+// author: Sathesh
+func BenchmarkFF1Encryption(b *testing.B) {
+	key := []byte("y9zHShe/o7I5jFa41JMEFA==")  //no significance in performance
+	tweak := []byte("asdasdadas sd dasdadasd") //no significance in performance
+	radix := uint32(10)                        //no significance in performance
 
 	var encrypter cipher.BlockMode
 	{
 		var err error
 		encrypter, err = getFF1Encrypter(key, tweak, radix)
-		assert.Nil(t, err)
-	}
-	var decrypter cipher.BlockMode
-	{
-		var err error
-		decrypter, err = getFF1Decrypter(key, tweak, radix)
-		assert.Nil(t, err)
+		assert.Nil(b, err)
 	}
 
-	// Encrypt
-	var plaintext = make([]uint16, l)
-	for i := 0; i < l; i++ {
-		plaintext[i] = maxRadixFF1 - 1
+	size := 10
+	var out = make([]uint16, size)
+	for i := 0; i < size; i++ {
+		out[i] = uint16(i)
 	}
+
+	// Encrypt random numeral string with random key
+	var plaintext = out
 	var src = NumeralStringToBytes(plaintext)
 	var dst = make([]byte, len(src))
-	encrypter.CryptBlocks(dst, src)
-	var ciphertext = BytesToNumeralString(dst)
 
-	// Decrypt
-	src = NumeralStringToBytes(ciphertext)
-	decrypter.CryptBlocks(dst, src)
-	var decrypted = BytesToNumeralString(dst)
-
-	assert.Equal(t, plaintext, decrypted)
+	for n := 0; n < b.N; n++ {
+		encrypter.CryptBlocks(dst, src)
+		BytesToNumeralString(dst)
+	}
 }
 
 func TestFF1BlockSize(t *testing.T) {

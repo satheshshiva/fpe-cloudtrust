@@ -4,7 +4,6 @@ import "C"
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"fmt"
 	"github.com/cloudtrust/fpe/fpe"
 	"github.com/cloudtrust/fpe/fpe/format"
 )
@@ -42,23 +41,16 @@ func Decrypt(_ct *C.char, _key *C.char, _tweak *C.char) *C.char {
 }
 
 func main() {
-	//pt := ";kmfglskdnfg v;df123m sdlafkmlkdsf;lke456jr sfdlmsf;lnefnewr;f742knmerf"
-	pt := ";kmfglskdnfg v;df123m sdla✅fkmlkdsf;lke456jr sfdl✅msf;lnefnewr;f742knmerf" //fail
-	//pt := "✅ke456jr sfdlmsf"	//fail
-	fmt.Println(pt)
-	ct := Encrypt(C.CString(pt), C.CString("y9zHShe/o7I5jFa41JMEFA=="), C.CString("39383736353433323130"))
-	cipherText := C.GoString(ct)
-	fmt.Println(cipherText)
 
-	decrypted := Decrypt(ct, C.CString("y9zHShe/o7I5jFa41JMEFA=="), C.CString("39383736353433323130"))
-	_decrypted := C.GoString(decrypted)
-	fmt.Println(_decrypted)
-	if pt == _decrypted {
-		fmt.Println("INPUT = DECRYPTED")
-	} else {
-		panic("!INPUT NOT DECRYPTED")
-	}
-	//TestEncryptDecrypt()
+}
+
+//doing this for tests. In Go, the tests does not support CGO yet!
+func encrypt(pt string, key string, tweak string) string {
+	return C.GoString(Encrypt(C.CString(pt), C.CString(key), C.CString(tweak)))
+}
+
+func decrypt(pt string, key string, tweak string) string {
+	return C.GoString(Decrypt(C.CString(pt), C.CString(key), C.CString(tweak)))
 }
 
 func getFF1Encrypter(key, tweak []byte, radix uint32) (cipher.BlockMode, error) {
