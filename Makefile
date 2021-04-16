@@ -1,5 +1,5 @@
 generatenative:
-	go build -buildmode=c-shared -o bin/lib-fpe.so
+	go build -buildmode=c-shared -o /amex/hiped/go/lib-fpe.so
 
 test:
 	go test -v github.com/cloudtrust/fpe/ff1
